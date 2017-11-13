@@ -6,14 +6,9 @@ module Logeater
     self.table_name = "requests"
 
     def self.import(values)
-      # values have to be unique by uuid
-      values = values.uniq { |request| request.uuid }
-
-      super values
-    rescue PG::UniqueViolation, ActiveRecord::RecordNotUnique
-      # try again after skipping requests with existing uuids
+      # values have to be unique by uuid so we pull already saved ones out before trying to insert
       existing_uuids = where(uuid: values.map(&:uuid)).pluck(:uuid)
-      values = values.reject { |request| existing_uuids.member?(request.uuid) }
+      values = values.uniq(&:uuid).reject { |request| existing_uuids.member?(request.uuid) }
 
       super values
     end

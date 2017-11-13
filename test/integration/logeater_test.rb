@@ -1,7 +1,7 @@
 require "test_helper"
 
 class LogeaterTest < ActiveSupport::TestCase
-  attr_reader :logfile
+  attr_reader :logfile, :events
 
 
   context "Given the log of a single request, it" do
@@ -10,17 +10,17 @@ class LogeaterTest < ActiveSupport::TestCase
     end
 
     should "identify the name of the logfile" do
-      assert_equal "single_request.log", reader.filename
+      assert_equal "single_request.log", logfile_reader.file.filename
     end
 
     should "create an entry in the database" do
       assert_difference "Logeater::Request.count", +1 do
-        reader.import
+        logfile_reader.import
       end
     end
 
     should "set all the attributes" do
-      reader.import
+      logfile_reader.import
       request = Logeater::Request.first
 
       params = {"refresh_page" => "true", "id" => "1035826228"}
@@ -47,7 +47,7 @@ class LogeaterTest < ActiveSupport::TestCase
       Logeater::Request.create!(app: app, logfile: "single_request.log", uuid: "3")
 
       assert_difference "Logeater::Request.count", -2 do
-        reader.reimport
+        logfile_reader.reimport
       end
     end
   end
@@ -60,7 +60,62 @@ class LogeaterTest < ActiveSupport::TestCase
 
     should "create an entry in the database" do
       assert_difference "Logeater::Request.count", +1 do
-        reader.import
+        logfile_reader.import
+      end
+    end
+  end
+
+
+  context "Given an app and a timestamp, import_since" do
+    setup do
+      log_sample = File.open(File.expand_path("./test/data/single_request.log"))
+      log_sample.lines do |line|
+        Logeater::Event.create(ep_app: app, original: line)
+      end
+      @events = Logeater::Event.all
+    end
+
+    should "import events since that given timestamp" do
+      assert_difference "Logeater::Request.count", +1 do
+        eventfile_reader.import
+      end
+    end
+
+    should "not reimport events if given twice" do
+      assert_difference "Logeater::Request.count", +1 do
+        eventfile_reader.import
+      end
+
+      assert_no_difference "Logeater::Request.count" do
+        eventfile_reader.import
+      end
+    end
+  end
+
+  context "Given a partial request in one import and the rest in a subsiquent import, it" do
+    setup do
+      @lines = File.open(File.expand_path("./test/data/single_request.log")).lines.to_a
+    end
+
+    should "save the request after having the full request" do
+      # The first two lines will not be enough to describe a complete request
+      # so Logeater will not be able to create a request from them...
+      @lines[0...2].each do |line|
+        Logeater::Event.create(ep_app: app, original: line)
+      end
+      @events = Logeater::Event.all
+      assert_no_difference "Logeater::Request.count" do
+        eventfile_reader.import
+      end
+
+      # ...but if we later discover the rest of the lines that describe a complete
+      # request, it'd be good if Logeater could then recognize and import it.
+      @lines[2..-1].each do |line|
+        Logeater::Event.create(ep_app: app, original: line)
+      end
+      @events = Logeater::Event.all
+      assert_difference "Logeater::Request.count", +1 do
+        eventfile_reader.import
       end
     end
   end
@@ -72,8 +127,12 @@ private
     "test"
   end
 
-  def reader
-    Logeater::Reader.new(app, logfile)
+  def logfile_reader
+    Logeater::Reader.new(app, Logeater::Logfile.new(logfile))
+  end
+
+  def eventfile_reader
+    Logeater::Reader.new(app, Logeater::Eventfile.new(events))
   end
 
 end

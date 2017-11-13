@@ -5,14 +5,13 @@ require "oj"
 
 module Logeater
   class Reader
-    attr_reader :app, :path, :filename, :batch_size
+    attr_reader :app, :file, :batch_size
 
-    def initialize(app, path, options={})
+    def initialize(app, file, options={})
       @app = app
-      @path = path
-      @filename = File.basename(path)
+      @file = file
+      @file.show_progress = options.fetch :progress, false
       @parser = Logeater::Parser.new
-      @show_progress = options.fetch :progress, false
       @batch_size = options.fetch :batch_size, 500
       @verbose = options.fetch :verbose, false
       @count = 0
@@ -54,33 +53,16 @@ module Logeater
     end
 
     def remove_existing_entries!
-      Logeater::Request.where(app: app, logfile: filename).delete_all
-    end
-
-    def show_progress?
-      @show_progress
+      Logeater::Request.where(app: app, logfile: file.filename).delete_all
     end
 
     def verbose?
       @verbose
     end
 
-    def each_line
-      File.open(path) do |file|
-        io = File.extname(path) == ".gz" ? Zlib::GzipReader.new(file) : file
-        pbar = ProgressBar.create(title: filename, total: file.size, autofinish: false, output: $stderr) if show_progress?
-        io.each_line do |line|
-          yield line
-          pbar.progress = file.pos if show_progress?
-        end
-        pbar.finish if show_progress?
-      end
-    end
-    alias :scan :each_line
-
     def each_request
       count = 0
-      each_line do |line|
+      file.each_line do |line|
         process_line! line do |request|
           yield request
           count += 1
@@ -102,7 +84,7 @@ module Logeater
       if attributes[:type] == :request_started
         requests[attributes[:uuid]] = attributes
           .slice(:uuid, :subdomain, :http_method, :path, :remote_ip, :user_id, :tester_bar)
-          .merge(started_at: attributes[:timestamp], logfile: filename, app: app)
+          .merge(started_at: attributes[:timestamp], logfile: file.filename, app: app)
         return
       end
 
