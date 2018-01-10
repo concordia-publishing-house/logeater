@@ -1,4 +1,3 @@
-# encoding: UTF-8
 # This file is auto-generated from the current state of the database. Instead
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
@@ -11,10 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160502131002) do
+ActiveRecord::Schema.define(version: 20171109171953) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "events", force: :cascade do |t|
+    t.datetime "emitted_at"
+    t.datetime "received_at",     default: -> { "now()" }
+    t.integer  "priority"
+    t.integer  "syslog_version"
+    t.string   "hostname"
+    t.string   "appname"
+    t.string   "proc_id"
+    t.string   "msg_id"
+    t.text     "structured_data"
+    t.text     "message"
+    t.text     "original"
+    t.string   "ep_app"
+    t.index ["ep_app"], name: "index_events_on_ep_app", using: :btree
+  end
 
   create_table "requests", force: :cascade do |t|
     t.string   "app",          null: false
@@ -36,15 +51,14 @@ ActiveRecord::Schema.define(version: 20160502131002) do
     t.datetime "updated_at"
     t.integer  "user_id"
     t.boolean  "tester_bar"
+    t.index ["app"], name: "index_requests_on_app", using: :btree
+    t.index ["completed_at"], name: "index_requests_on_completed_at", using: :btree
+    t.index ["controller", "action"], name: "index_requests_on_controller_and_action", using: :btree
+    t.index ["http_status"], name: "index_requests_on_http_status", using: :btree
+    t.index ["logfile"], name: "index_requests_on_logfile", using: :btree
+    t.index ["params"], name: "index_requests_on_params", using: :gin
+    t.index ["subdomain"], name: "index_requests_on_subdomain", using: :btree
+    t.index ["uuid"], name: "index_requests_on_uuid", unique: true, using: :btree
   end
-
-  add_index "requests", ["app"], name: "index_requests_on_app", using: :btree
-  add_index "requests", ["completed_at"], name: "index_requests_on_completed_at", using: :btree
-  add_index "requests", ["controller", "action"], name: "index_requests_on_controller_and_action", using: :btree
-  add_index "requests", ["http_status"], name: "index_requests_on_http_status", using: :btree
-  add_index "requests", ["logfile"], name: "index_requests_on_logfile", using: :btree
-  add_index "requests", ["params"], name: "index_requests_on_params", using: :gin
-  add_index "requests", ["subdomain"], name: "index_requests_on_subdomain", using: :btree
-  add_index "requests", ["uuid"], name: "index_requests_on_uuid", unique: true, using: :btree
 
 end
