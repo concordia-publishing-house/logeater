@@ -17,7 +17,7 @@ module Logeater
     REQUEST_LINE_MATCHER = /^
     \[(?<subdomain>[^\]]+)\]\s
     \[(?<uuid>[\w\-]{36})\]\s+
- (?:\[(?:guest|user\.(?<user_id>\d+)(?<tester_bar>:cph)?)\]\s+)?
+ (?:\[(?:guest|user\.(?<user_id>\d+)(?<tester_bar>:cph)?|(?<email>.+@[^\]]+))\]\s+)?
       (?<message>.*)
     $/x.freeze
 
@@ -69,7 +69,7 @@ module Logeater
       { subdomain: match["subdomain"],
         uuid: match["uuid"],
         type: :request_line,
-        user_id: match["user_id"] && match["user_id"].to_i,
+        user_id: user_id_for(match),
         tester_bar: !!match["tester_bar"],
         message: message
       }.merge(
@@ -119,6 +119,12 @@ module Logeater
         http_status: match["http_status"].to_i,
         http_response: match["http_response"],
         duration: match["duration"].to_i }
+    end
+
+    def user_id_for(match)
+      return match["user_id"].to_i if match["user_id"]
+      return match["email"] if match["email"]
+      nil
     end
 
 

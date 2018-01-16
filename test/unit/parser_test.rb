@@ -104,9 +104,27 @@ class ParserTest < ActiveSupport::TestCase
       end
     end
 
+    context "that indicates the current user via email, it" do
+      setup do
+        @line = "I, [2015-01-10T15:18:05.850839 #18070]  INFO -- : [livingsaviorco] [2d89d962-57c4-47c9-a9e9-6a16a5f22a12] [example@user.com] [gzip] Compress reponse by 42.2 KB (83.3%)  (1.4ms)"
+      end
+
+      should "identify the user's email" do
+        assert_parses user_id: "example@user.com"
+      end
+
+      should "identify the remainder of the log message" do
+        assert_parses message: "[gzip] Compress reponse by 42.2 KB (83.3%)  (1.4ms)"
+      end
+    end
+
     context "that indicates that the user is logged out, it" do
       setup do
         @line = "I, [2015-01-10T15:18:05.850839 #18070]  INFO -- : [livingsaviorco] [2d89d962-57c4-47c9-a9e9-6a16a5f22a12] [guest] [gzip] Compress reponse by 42.2 KB (83.3%)  (1.4ms)"
+      end
+
+      should "identify the user as a guest" do
+        assert_parses user_id: nil
       end
 
       should "identify the remainder of the log message" do
