@@ -1,4 +1,5 @@
 require "test_helper"
+require "heroku-log-parser"
 
 class LogeaterTest < ActiveSupport::TestCase
   attr_reader :logfile, :events
@@ -68,9 +69,9 @@ class LogeaterTest < ActiveSupport::TestCase
 
   context "Given an app and a timestamp, import_since" do
     setup do
-      log_sample = File.open(File.expand_path("./test/data/single_request.log"))
+      log_sample = File.open(File.expand_path("./test/data/single_heroku_request.log"))
       log_sample.lines do |line|
-        Logeater::Event.create(ep_app: app, original: line)
+        Logeater::Event.create HerokuLogParser.parse(line).first.merge(ep_app: app)
       end
       @events = Logeater::Event.all
     end
@@ -94,14 +95,14 @@ class LogeaterTest < ActiveSupport::TestCase
 
   context "Given a partial request in one import and the rest in a subsiquent import, it" do
     setup do
-      @lines = File.open(File.expand_path("./test/data/single_request.log")).lines.to_a
+      @lines = File.open(File.expand_path("./test/data/single_heroku_request.log")).lines.to_a
     end
 
     should "save the request after having the full request" do
       # The first two lines will not be enough to describe a complete request
       # so Logeater will not be able to create a request from them...
       @lines[0...2].each do |line|
-        Logeater::Event.create(ep_app: app, original: line)
+        Logeater::Event.create HerokuLogParser.parse(line).first.merge(ep_app: app)
       end
       @events = Logeater::Event.all
       assert_no_difference "Logeater::Request.count" do
@@ -111,7 +112,7 @@ class LogeaterTest < ActiveSupport::TestCase
       # ...but if we later discover the rest of the lines that describe a complete
       # request, it'd be good if Logeater could then recognize and import it.
       @lines[2..-1].each do |line|
-        Logeater::Event.create(ep_app: app, original: line)
+        Logeater::Event.create HerokuLogParser.parse(line).first.merge(ep_app: app)
       end
       @events = Logeater::Event.all
       assert_difference "Logeater::Request.count", +1 do
