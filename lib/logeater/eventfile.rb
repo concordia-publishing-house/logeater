@@ -10,8 +10,8 @@ module Logeater
     end
 
     def each_line
-      events.pluck(:original).each do |event|
-        yield event
+      events.find_each do |event|
+        yield event.logger_line
       end
     end
 
