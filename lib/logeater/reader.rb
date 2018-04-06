@@ -71,6 +71,10 @@ module Logeater
       count
     end
 
+    def filename
+      file.filename
+    end
+
 
 
   private
