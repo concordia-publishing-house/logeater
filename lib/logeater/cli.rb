@@ -78,7 +78,7 @@ module Logeater
       started_all = Time.now
       $stderr.puts " > \e[34mImporting events since \e[1m#{timestamp}\e[0m\n"
 
-      events = Logeater::Event.where(app: app).since(timestamp)
+      events = Logeater::Event.where(ep_app: app).since(timestamp)
       import_file Logeater::Eventfile.new(events), app
 
       finished_all = Time.now
