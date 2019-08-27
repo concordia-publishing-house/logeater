@@ -89,6 +89,22 @@ module Logeater
     end
 
 
+    desc "import_new APP", "imports unimported log events"
+    def import_new(app)
+      started_all = Time.now
+      $stderr.puts " > \e[34mImporting unprocessed events for \e[1m#{app}\e[0m\n"
+
+      events = Logeater::Event.where(ep_app: app).unprocessed
+      import_file Logeater::Eventfile.new(events), app
+
+      finished_all = Time.now
+      seconds = finished_all - started_all
+      minutes = (seconds / 60).to_i
+      seconds -= (minutes * 60)
+      $stderr.puts "Total time %d minutes, %.2f seconds" % [minutes, seconds]
+    end
+
+
     def import_file(file, app, options={})
       reader = Logeater::Reader.new(app, file, options.slice(:progress, :verbose))
 

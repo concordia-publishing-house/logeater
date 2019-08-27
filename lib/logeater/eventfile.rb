@@ -6,13 +6,20 @@ module Logeater
 
     def initialize(events)
       @events = events
-      @filename = "events_#{events.count}"
+      @filename = "events_#{timestamp}"
     end
 
     def each_line
       events.find_each do |event|
         yield event.logger_line
+        event.touch :processed_at
       end
+    end
+
+  private
+
+    def timestamp
+      @timestamp ||= Time.now.strftime "%Y%m%d%H%M%S.%L"
     end
 
   end
