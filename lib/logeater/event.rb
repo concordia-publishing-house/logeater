@@ -8,6 +8,14 @@ module Logeater
       where(arel_table[:received_at].gteq(timestamp))
     end
 
+    def self.processed
+      where.not(processed_at: nil)
+    end
+
+    def self.unprocessed
+      where(processed_at: nil)
+    end
+
     def logger_line
       "#{severity_id}, [#{timestamp}]  #{severity_label} -- : #{message}"
     end
