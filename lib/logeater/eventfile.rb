@@ -12,6 +12,7 @@ module Logeater
     def each_line
       events.find_each do |event|
         yield event.logger_line
+        event.touch :processed_at
       end
     end
 
