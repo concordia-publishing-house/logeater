@@ -1,3 +1,3 @@
 module Logeater
-  VERSION = "0.5.3.pre"
+  VERSION = "0.5.4.pre"
 end
